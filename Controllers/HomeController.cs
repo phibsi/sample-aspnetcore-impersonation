@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System;
+using System.IO;
+using System.Net;
 using System.Security.Principal;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.SharePoint.Client;
+using Newtonsoft.Json;
+using Sample.AspNetCore.Impersonation.Models;
 using Sample.AspNetCore.Impersonation.Services;
 
 namespace Sample.AspNetCore.Impersonation.Controllers
@@ -28,19 +30,19 @@ namespace Sample.AspNetCore.Impersonation.Controllers
         }
 
         [HttpGet("userInfo")]
-        public async Task<IActionResult> GetUserInfo([FromQuery] string spHostUrl)
+        public IActionResult GetUserInfo([FromQuery] string spHostUrl)
         {
             var sb = new StringBuilder();
             try
             {
                 sb.AppendLine("## Application pool");
-                await GetUserInfoStatus(sb, spHostUrl);
+                GetUserInfoStatus(sb, spHostUrl);
 
-                await _impersonationService.Impersonate(async () =>
+                _impersonationService.Impersonate(() =>
                 {
                     sb.AppendLine();
                     sb.AppendLine("## Impersonated user");
-                    await GetUserInfoStatus(sb, spHostUrl);
+                    GetUserInfoStatus(sb, spHostUrl);
                 });
             }
             catch (Exception ex) {
@@ -73,27 +75,44 @@ namespace Sample.AspNetCore.Impersonation.Controllers
             return Content(sb.ToString());
         }
 
-        private async Task GetUserInfoStatus(StringBuilder sb, string webUrl)
+        private void GetUserInfoStatus(StringBuilder sb, string webUrl)
         {
             sb.AppendLine($"User name: {WindowsIdentity.GetCurrent().Name}");
             if (!string.IsNullOrEmpty(webUrl))
             {
-                var result = await GetSharePointLoginName(webUrl);
+                var result = GetSharePointLoginName(webUrl);
                 sb.AppendLine($"SharePoint login name: {result}");
             }
         }
 
-        private async Task<string> GetSharePointLoginName(string webUrl)
+        private string GetSharePointLoginName(string webUrl)
         {
             try
             {
-                using (var clientContext = new ClientContext(webUrl))
+                var url = $"{webUrl.TrimEnd('/')}/_api/Web/CurrentUser";
+                
+                var request = WebRequest.CreateHttp(url);
+                request.UseDefaultCredentials = true;
+                request.Method = "GET";
+                request.Headers.Add(HttpRequestHeader.Accept, "application/json;odata=verbose");
+
+                using (var response = (HttpWebResponse)request.GetResponse())
                 {
-                    var web = clientContext.Web;
-                    var user = web.CurrentUser;
-                    clientContext.Load(user, u => u.LoginName);
-                    await clientContext.ExecuteQueryAsync();
-                    return user.LoginName;
+                    using (var responseStream = response.GetResponseStream())
+                    {
+                        if (responseStream == null)
+                        {
+                            throw new InvalidOperationException();
+                        }
+
+                        using (var myStreamReader = new StreamReader(responseStream, Encoding.UTF8))
+                        {
+                            var responseJson = myStreamReader.ReadToEnd();
+                            var result = JsonConvert.DeserializeObject<CurrentUserResult>(responseJson);
+
+                            return result.D.LoginName;
+                        }
+                    }
                 }
             }
             catch (Exception ex)
