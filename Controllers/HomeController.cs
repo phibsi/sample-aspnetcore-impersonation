@@ -5,6 +5,7 @@ using System.Net;
 using System.Security.Principal;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using Sample.AspNetCore.Impersonation.Models;
 using Sample.AspNetCore.Impersonation.Services;
@@ -15,9 +16,9 @@ namespace Sample.AspNetCore.Impersonation.Controllers
     public class HomeController : BaseController
     {
         private readonly ImpersonationService _impersonationService;
-        private readonly IHostingEnvironment _environment;
+        private readonly IWebHostEnvironment _environment;
 
-        public HomeController(ImpersonationService impersonationService, IHostingEnvironment environment)
+        public HomeController(ImpersonationService impersonationService, IWebHostEnvironment environment)
         {
             _impersonationService = impersonationService;
             _environment = environment;

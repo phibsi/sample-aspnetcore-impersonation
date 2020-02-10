@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Sample.AspNetCore.Impersonation.Services;
 using Sample.AspNetCore.Impersonation.Settings;
 
@@ -12,7 +13,7 @@ namespace Sample.AspNetCore.Impersonation
     public class Startup
     {
         // This method gets called in Program.cs. Use this method to add settings to the container.
-        public static void ConfigureSettings(WebHostBuilderContext context, IServiceCollection services)
+        public static void ConfigureSettings(HostBuilderContext context, IServiceCollection services)
         {
             var configuration = context.Configuration;
 
@@ -27,23 +28,26 @@ namespace Sample.AspNetCore.Impersonation
             services.AddAuthentication(IISDefaults.AuthenticationScheme);
             
             services.AddHttpContextAccessor();
-            services.AddMvc()
-                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddControllers();
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseAuthentication();
-
             app.UseStaticFiles();
 
-            app.UseMvc();
+            app.UseRouting();
+            
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }

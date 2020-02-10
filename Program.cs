@@ -1,6 +1,6 @@
 using System;
-using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Web;
 
@@ -16,7 +16,7 @@ namespace Sample.AspNetCore.Impersonation
             var logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             try
             {
-                CreateWebHostBuilder(args).Build().Run();
+                CreateHostBuilder(args).Build().Run();
             }
             catch (Exception ex)
             {
@@ -29,8 +29,8 @@ namespace Sample.AspNetCore.Impersonation
             }
         }
 
-        private static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
+        private static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
@@ -38,6 +38,6 @@ namespace Sample.AspNetCore.Impersonation
                 })
                 .UseNLog()
                 .ConfigureServices(Startup.ConfigureSettings)
-                .UseStartup<Startup>();
+                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
     }
 }
