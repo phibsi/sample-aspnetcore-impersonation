@@ -10,9 +10,6 @@ namespace Sample.AspNetCore.Impersonation
     {
         public static void Main(string[] args)
         {
-            
-            AppContext.SetSwitch("System.Net.Http.UseSocketsHttpHandler", false);
-
             var logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             try
             {
